@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
-import HizmetSatiri from "./components/HizmetSatiri";
-import type { Hizmet } from "./types";
- 
 
+import type { Hizmet } from "./types";
+
+import HizmetListesi from "./components/HizmetListesi";
+import HizmetFormu from "./components/HizmetFormu";
+import Kategoriler from "./components/Kategoriler";
+
+import hizmetleriGetir from "./api/hizmetler";
 
 function App() {
+
+  // =====================================================
+  // STATE
+  // =====================================================
+
   const [hizmetler, setHizmetler] = useState<Hizmet[]>([]);
 
   const [hizmetadi, setHizmetadi] = useState("");
@@ -13,40 +22,56 @@ function App() {
   const [duzenlenenHizmetId, setDuzenlenenHizmetId] =
     useState<number | null>(null);
 
-  // HİZMETLERİ GETİR
-  useEffect(() => {
-    async function hizmets() {
-      try {
-        const response = await fetch(
-          "http://localhost:3080/hizmetler"
-        );
 
-        const hizmetverisi = await response.json();
+  // =====================================================
+  // HİZMETLERİ GETİR
+  // =====================================================
+
+  useEffect(() => {
+
+    async function getir() {
+      try {
+
+        const hizmetverisi = await hizmetleriGetir();
 
         setHizmetler(hizmetverisi);
+
       } catch (error) {
+
         console.error("Hizmetler getirilemedi:", error);
+
       }
     }
 
-    hizmets();
+    getir();
+
   }, []);
 
+
+  // =====================================================
   // HİZMET EKLE
+  // =====================================================
+
   const hizmetEkle = async () => {
+
     if (hizmetadi.trim() === "" || hizmetfiyati < 0) {
-      alert("kutu içerikleri:  sayı eksi girilemez. Ad boş bırakılamaz ")
+
+      alert("Ad boş bırakılamaz ve fiyat negatif olamaz.");
+
       return;
     }
+
     try {
 
       const response = await fetch(
         "http://localhost:3080/hizmetler",
         {
           method: "POST",
+
           headers: {
             "Content-Type": "application/json",
           },
+
           body: JSON.stringify({
             ad: hizmetadi,
             fiyat: hizmetfiyati,
@@ -61,20 +86,30 @@ function App() {
 
       const yeniHizmet = await response.json();
 
-      setHizmetler([...hizmetler, yeniHizmet]);
+      setHizmetler([
+        ...hizmetler,
+        yeniHizmet
+      ]);
 
       setHizmetadi("");
       setHizmetfiyati(0);
 
-      console.log("Hizmet başarıyla eklendi");
     } catch (error) {
+
       console.error("Ekleme başarısız:", error);
+
     }
   };
 
+
+  // =====================================================
   // HİZMET SİL
+  // =====================================================
+
   const hizmetSil = async (id: number) => {
+
     try {
+
       const response = await fetch(
         `http://localhost:3080/hizmetler/${id}`,
         {
@@ -87,18 +122,26 @@ function App() {
         return;
       }
 
-      const yeniListe = hizmetler.filter(
-        (hizmet) => hizmet.id !== id
+      setHizmetler(
+        hizmetler.filter(
+          (hizmet) => hizmet.id !== id
+        )
       );
 
-      setHizmetler(yeniListe);
     } catch (error) {
+
       console.error("Silme başarısız:", error);
+
     }
   };
 
-  // DÜZENLE BUTONUNA BASILINCA
+
+  // =====================================================
+  // HİZMET DÜZENLEME MODUNA GİR
+  // =====================================================
+
   const hizmetDuzenle = (id: number) => {
+
     const duzenlenen = hizmetler.find(
       (hizmet) => hizmet.id === id
     );
@@ -111,24 +154,31 @@ function App() {
     setDuzenlenenHizmetId(id);
 
     setHizmetadi(duzenlenen.ad);
-
     setHizmetfiyati(duzenlenen.fiyat);
   };
 
+
+  // =====================================================
   // HİZMET GÜNCELLE
+  // =====================================================
+
   const hizmetGuncelle = async () => {
+
     if (duzenlenenHizmetId === null) {
       return;
     }
 
     try {
+
       const response = await fetch(
         `http://localhost:3080/hizmetler/${duzenlenenHizmetId}`,
         {
           method: "PUT",
+
           headers: {
             "Content-Type": "application/json",
           },
+
           body: JSON.stringify({
             fiyat: hizmetfiyati,
           }),
@@ -143,117 +193,76 @@ function App() {
       const guncellenenHizmet = await response.json();
 
       const yeniListe = hizmetler.map((hizmet) => {
+
         if (hizmet.id === duzenlenenHizmetId) {
           return guncellenenHizmet;
         }
 
         return hizmet;
+
       });
 
       setHizmetler(yeniListe);
 
-      // DÜZENLEME MODUNDAN ÇIK
-      setDuzenlenenHizmetId(null);
+      duzenlemeyiIptalEt();
 
-      // FORMU TEMİZLE
-      setHizmetadi("");
-      setHizmetfiyati(0);
-
-      console.log("Hizmet güncellendi");
     } catch (error) {
+
       console.error("Güncelleme başarısız:", error);
+
     }
   };
 
+
+  // =====================================================
   // DÜZENLEMEYİ İPTAL ET
+  // =====================================================
+
   const duzenlemeyiIptalEt = () => {
+
     setDuzenlenenHizmetId(null);
 
     setHizmetadi("");
-
     setHizmetfiyati(0);
+
   };
+
+
+  // =====================================================
+  // JSX
+  // =====================================================
 
   return (
     <div>
-      {/* HİZMET LİSTESİ */}
 
-      <ul className="grid grid-cols-2 gap-4 max-w-3xl mx-auto p-4">
-        {hizmetler.map((hizmet) => {
-          return (
-            <HizmetSatiri
-            key={hizmet.id}
-              hizmet={hizmet}
-              hizmetDuzenle={hizmetDuzenle}
-              hizmetSil={hizmetSil} />
-          );
-        })}
-      </ul>
+      {/* HİZMETLER */}
 
-      {/* FORM */}
+      <HizmetListesi
+        hizmetler={hizmetler}
+        hizmetDuzenle={hizmetDuzenle}
+        hizmetSil={hizmetSil}
+      />
 
-      <div className="max-w-2xl mx-auto mt-8 p-6 rounded-xl border border-amber-400 bg-gray-900">
-        <h2 className="text-xl font-bold mb-5 text-center">
-          {duzenlenenHizmetId !== null
-            ? "Hizmeti Güncelle"
-            : "Hizmet Ekleyin"}
-        </h2>
+      <HizmetFormu
+        hizmetadi={hizmetadi}
+        hizmetfiyati={hizmetfiyati}
+        setHizmetadi={setHizmetadi}
+        setHizmetfiyati={setHizmetfiyati}
+        duzenlenenHizmetId={duzenlenenHizmetId}
+        hizmetGuncelle={hizmetGuncelle}
+        duzenlemeyiIptalEt={duzenlemeyiIptalEt}
+        hizmetEkle={hizmetEkle}
+      />
 
-        <div className="flex gap-3">
-          {/* HİZMET ADI */}
 
-          <input
-            value={hizmetadi}
-            className="flex-1 border border-amber-400 rounded px-3 py-2 outline-none"
-            placeholder="Hizmet adı"
-            onChange={(e) =>
-              setHizmetadi(e.target.value)
-            }
-          />
+      {/* KATEGORİLER */}
 
-          {/* FİYAT */}
+      <div>
+        <h1>Kategoriler</h1>
 
-          <input
-            value={hizmetfiyati}
-            type="number"
-            className="w-32 border border-amber-400 rounded px-3 py-2 outline-none"
-            placeholder="Fiyat"
-            onChange={(e) =>
-              setHizmetfiyati(
-                Number(e.target.value)
-              )
-            }
-          />
-
-          {/* ANA BUTON */}
-
-          <button
-            className="px-5 py-2 rounded bg-amber-700 hover:bg-amber-500 text-white transition"
-            onClick={() => {
-              if (duzenlenenHizmetId !== null) {
-                hizmetGuncelle();
-              } else {
-                hizmetEkle();
-              }
-            }}
-          >
-            {duzenlenenHizmetId !== null
-              ? "Güncelle"
-              : "Ekle"}
-          </button>
-
-          {/* İPTAL */}
-
-          {duzenlenenHizmetId !== null && (
-            <button
-              className="px-5 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white"
-              onClick={duzenlemeyiIptalEt}
-            >
-              İptal
-            </button>
-          )}
-        </div>
+        <Kategoriler />
       </div>
+
     </div>
   );
 }

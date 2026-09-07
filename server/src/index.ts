@@ -25,6 +25,71 @@ app.get('/hizmetler', async (req, res) => { // → Hizmetleri getirir.
 
 })
 
+
+  
+app.get('/companies', async (req, res) => {
+    try {
+        const id = req.query.category_id
+
+        const Companies = await pool.query(`
+            SELECT DISTINCT
+                companies.id,
+                companies.company_name,
+                companies.address,
+                companies.phone
+            FROM company_categories
+            JOIN companies
+                ON company_categories.company_id = companies.id
+            WHERE company_categories.category_id = $1;
+        `, [id])
+
+        res.json(Companies.rows)
+
+    } catch (error) {
+        console.error(error, "firmalar getirilemedi")
+        res.status(500).json({
+            mesaj: "Firmalar getirilemedi"
+        })
+    }
+})
+ 
+
+
+
+app.get('/services', async (req, res) => { // → Hizmetleri getirir.
+
+
+    try {
+        const id = req.query.category_id
+        const Services = await
+            pool.query(`SELECT
+        services.id,
+        services.name,
+        services.price,
+        services.category_id,
+        services.company_id,
+        companies.company_name
+     FROM services
+     JOIN companies
+        ON services.company_id = companies.id
+     WHERE services.category_id = $1`,
+                [id])
+
+
+        res.json(Services.rows)
+
+    } catch (error) {
+        console.error(error, "api get istegi atılamadı")
+        res.status(500).json(error)
+    }
+
+})
+
+
+
+
+
+
 app.post('/hizmetler', async (req, res) => { // → Yeni hizmet oluşturma isteğini yakalar.
     try {
         if (req.body.ad === "" || req.body.ad === undefined || req.body.fiyat < 0) {
@@ -53,8 +118,8 @@ app.post('/hizmetler', async (req, res) => { // → Yeni hizmet oluşturma iste�
 app.put('/hizmetler/:id', async (req, res) => { // →  
 
     try {
-        if (req.body.fiyat < 0){
-            return res.status(400).json({ mesaj: "Geçersiz fiyat bilgisi"})
+        if (req.body.fiyat < 0) {
+            return res.status(400).json({ mesaj: "Geçersiz fiyat bilgisi" })
         }
         const id = req.params.id
         const hizmet = await pool.query(
@@ -84,6 +149,22 @@ app.delete('/hizmetler/:id', async (req, res) => {
 
 
 })
+
+app.get('/service-categories', async (req, res) => {
+    try {
+        const kategoriler = await pool.query(
+            "SELECT * FROM service_categories"
+        );
+
+        res.json(kategoriler.rows);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            mesaj: "Kategoriler getirilemedi"
+        });
+    }
+});
 
 app.listen(3080, () => {
     console.log('App listening on port 3080')
